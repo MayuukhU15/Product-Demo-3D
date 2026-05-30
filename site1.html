@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aria Smart Speaker - Premium Showcase</title>
+  <style>
+    :root {
+      --bg-color: #040406;
+      --panel-bg: rgba(10, 10, 14, 0.65);
+      --accent-color: #ffffff;
+      --glow-color: rgba(255, 255, 255, 0.8);
+      --text-main: #ffffff;
+      --text-muted: #828292;
+      --panel-width: 460px;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      color: var(--text-main);
+      background-color: var(--bg-color);
+      overflow: hidden;
+      letter-spacing: -0.01em;
+    }
+
+    #app-container {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* Left Sidebar Panel */
+    #ui-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: var(--panel-width);
+      height: 100%;
+      background: linear-gradient(90deg, var(--panel-bg) 0%, rgba(10, 10, 14, 0.4) 60%, rgba(4, 4, 6, 0) 100%);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      z-index: 10;
+      padding: 40px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: b;
+      pointer-events: auto;
+      border-right: 1px solid rgba(255, 255, 255, 0.03);
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #ui-panel.collapsed {
+      transform: translateX(calc(-1 * var(--panel-width)));
+    }
+
+    #toggle-panel-btn {
+      position: absolute;
+      right: -48px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 80px;
+      background: rgba(10, 10, 14, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-left: none;
+      color: var(--text-muted);
+      border-radius: 0 12px 12px 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(12px);
+      transition: all 0.3s ease;
+    }
+
+    #toggle-panel-btn:hover { color: var(--text-main); background: rgba(20, 20, 28, 0.8); }
+    #toggle-panel-btn svg { width: 18px; height: 18px; transition: transform 0.5s ease; }
+    #ui-panel.collapsed #toggle-panel-btn svg { transform: rotate(180deg); }
+
+    .badge {
+      align-self: flex-start;
+      padding: 6px 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    h1 { margin: 0 0 4px; font-size: 3rem; font-weight: 700; letter-spacing: -0.05em; line-height: 1.05; }
+    .tagline { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 24px; font-weight: 400; }
+
+    .menu-tabs { display: flex; border-bottom: 1px solid rgba(255, 255, 255, 0.06); margin-bottom: 16px; }
+    .tab-btn {
+      background: none; border: none; color: var(--text-muted); font-size: 0.95rem;
+      font-weight: 500; padding: 10px 0; margin-right: 32px; cursor: pointer; position: relative;
+    }
+    .tab-btn.active { color: var(--text-main); font-weight: 600; }
+    .tab-btn.active::after {
+      content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 2px;
+      background-color: var(--accent-color); box-shadow: 0 0 12px var(--glow-color);
+    }
+
+    /* Fixed Height Container to prevent shifting down layout */
+    .tab-wrapper { position: relative; height: 130px; margin-bottom: 20px; }
+    .tab-content {
+      position: absolute; top: 0; left: 0; width: 100%; font-size: 0.9rem; line-height: 1.5;
+      color: #b9b9c9; opacity: 0; transform: translateY(12px); pointer-events: none;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .tab-content.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+    .spec-table { width: 100%; border-collapse: collapse; }
+    .spec-table td { padding: 6px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+    .spec-label { color: var(--text-muted); }
+    .spec-value { text-align: right; font-weight: 500; color: var(--text-main); }
+    .feature-list { margin: 0; padding-left: 20px; }
+    .feature-list li { margin-bottom: 6px; }
+
+    /* Customizer & Controls Blocks */
+    .control-section { margin-bottom: 20px; }
+    .section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
+    
+    .theme-picker { display: flex; gap: 14px; }
+    .color-swatch {
+      width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.3s ease;
+    }
+    .color-swatch.active { border-color: #fff; transform: scale(1.15); }
+
+    .slider-container { display: flex; align-items: center; gap: 16px; background: rgba(255,255,255,0.03); padding: 10px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+    .slider-container input { flex: 1; accent-color: #fff; cursor: pointer; }
+
+    .hotspot-row { display: flex; gap: 8px; }
+    .hotspot-btn {
+      flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: #fff;
+      padding: 8px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s ease;
+    }
+    .hotspot-btn:hover { background: rgba(255,255,255,0.12); }
+
+    /* Audio Player Widget */
+    .audio-panel {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255,255,255,0.08);
+      padding: 10px 20px; border-radius: 12px; margin-bottom: 20px;
+    }
+    .audio-info { display: flex; flex-direction: column; gap: 2px; }
+    .audio-title { font-size: 0.85rem; font-weight: 600; }
+    .audio-status { font-size: 0.75rem; color: var(--text-muted); }
+    .play-btn {
+      background: #fff; border: none; width: 34px; height: 34px; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;
+    }
+    .play-btn:hover { transform: scale(1.08); }
+    .play-btn svg { width: 14px; height: 14px; fill: var(--bg-color); }
+
+    /* Sticky Bottom Box Positioning */
+    .action-container { margin-top: auto; padding-top: 10px; }
+    .price { font-size: 1.5rem; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.02em; }
+    .buy-btn {
+      width: 100%; background: var(--text-main); color: var(--bg-color); border: none;
+      padding: 14px 32px; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 24px rgba(255, 255, 255, 0.15); transition: all 0.3s ease;
+    }
+    .buy-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(255, 255, 255, 0.25); }
+
+    #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    <div id="ui-panel">
+      <button id="toggle-panel-btn" onclick="togglePanel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+
+      <div class="content-scroller">
+        <div class="badge">Next-Gen Audio</div>
+        <h1>Aria</h1>
+        <div class="tagline">Smart Sound Architecture</div>
+
+        <div class="menu-tabs">
+          <button class="tab-btn active" onclick="switchTab(event, 'overview')">Overview</button>
+          <button class="tab-btn" onclick="switchTab(event, 'specs')">Specs</button>
+          <button class="tab-btn" onclick="switchTab(event, 'features')">Features</button>
+        </div>
+
+        <div class="tab-wrapper">
+          <div id="overview" class="tab-content active">
+            <p style="margin:0;">Experience studio-grade acoustics wrapped inside a minimalist canvas form-factor. Aria utilizes specialized spatial orientation arrays to fill any environment with deep bass and crystallized highs.</p>
+          </div>
+          <div id="specs" class="tab-content">
+            <table class="spec-table">
+              <tr><td class="spec-label">Drivers</td><td class="spec-value">2x Tweeters, 1x Woofer</td></tr>
+              <tr><td class="spec-label">Frequency Res.</td><td class="spec-value">45Hz - 20kHz</td></tr>
+              <tr><td class="spec-label">Connectivity</td><td class="spec-value">Wi-Fi 6, Bluetooth 5.2</td></tr>
+              <tr><td class="spec-label">Dimensions</td><td class="spec-value">180mm x 120mm</td></tr>
+            </table>
+          </div>
+          <div id="features" class="tab-content">
+            <ul class="feature-list">
+              <li>TrueStream™ Ultra-low latency spatial mapping</li>
+              <li>Capacitive top glass dashboard with multi-touch</li>
+              <li>Adaptive room tuning via micro-sonar array</li>
+              <li>Eco-mesh grille woven from oceanic plastics</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <div class="section-title">Acoustic Aura Hue</div>
+          <div class="theme-picker">
+            <div class="color-swatch active" style="background: #ffffff;" onclick="changeColor(this, '#ffffff', '#ffffff')"></div>
+            <div class="color-swatch" style="background: #00ffcc;" onclick="changeColor(this, '#00ffcc', '#0099ff')"></div>
+            <div class="color-swatch" style="background: #ff5577;" onclick="changeColor(this, '#ff5577', '#ffaa66')"></div>
+            <div class="color-swatch" style="background: #ffaa00;" onclick="changeColor(this, '#ffaa00', '#ff3300')"></div>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <div class="section-title">Architecture X-Ray</div>
+          <div class="slider-container">
+            <input type="range" id="explodeSlider" min="0" max="1" step="0.01" value="0" oninput="updateExplode(this.value)">
+          </div>
+        </div>
+
+        <div class="control-section">
+          <div class="section-title">Camera Focus Array</div>
+          <div class="hotspot-row">
+            <button class="hotspot-btn" onclick="triggerHotspot('dashboard')">Glass Dash</button>
+            <button class="hotspot-btn" onclick="triggerHotspot('grille')">Core Mesh</button>
+            <button class="hotspot-btn" onclick="triggerHotspot('base')">Sub Base</button>
+          </div>
+        </div>
+
+        <div class="audio-panel">
+          <div class="audio-info">
+            <span class="audio-title">Aria Pulse Ambient</span>
+            <span class="audio-status" id="track-status">Sound Generator Idle</span>
+          </div>
+          <button class="play-btn" onclick="toggleAudio()">
+            <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="action-container">
+        <div class="price">$249.00</div>
+        <button class="buy-btn">Pre-Order Now</button>
+      </div>
+    </div>
+
+    <div id="canvas-container"></div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+    let isCollapsed = false;
+    let currentXOffset = 0.45;
+    let targetXOffset = 0.45;
+
+    // Camera states & interaction mechanics
+    let isUserIdle = true;
+    let idleTimer;
+    const IDLE_TIME_LIMIT = 4000;
+    let cameraAngle = 0;
+    let targetCamPos = null;
+
+    // Web Audio Synthesizer Hook
+    let audioCtx, oscillator, gainNode, isPlaying = false;
+
+    window.switchTab = function(event, tabId) {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+
+    window.togglePanel = function() {
+      const panel = document.getElementById('ui-panel');
+      isCollapsed = !isCollapsed;
+      panel.classList.toggle('collapsed', isCollapsed);
+      targetXOffset = isCollapsed ? 0 : 0.45;
+      resetIdleTimer();
+    }
+
+    function resetIdleTimer() {
+      isUserIdle = false;
+      targetCamPos = null; 
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        isUserIdle = true;
+        const dx = camera.position.x - currentXOffset;
+        const dz = camera.position.z;
+        cameraAngle = Math.atan2(dz, dx);
+      }, IDLE_TIME_LIMIT);
+    }
+
+    window.addEventListener('mousemove', resetIdleTimer);
+    window.addEventListener('mousedown', resetIdleTimer);
+    window.addEventListener('wheel', resetIdleTimer);
+    resetIdleTimer();
+
+    // --- Audio Reactivity Synthesizer Engine ---
+    window.toggleAudio = function() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        oscillator = audioCtx.createOscillator();
+        gainNode = audioCtx.createGain();
+        
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(55, audioCtx.currentTime); 
+        gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+      }
+      
+      if (isPlaying) {
+        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+        document.getElementById('play-icon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+        document.getElementById('track-status').innerText = 'Audio Paused';
+        isPlaying = false;
+      } else {
+        audioCtx.resume();
+        gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.2);
+        document.getElementById('play-icon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        document.getElementById('track-status').innerText = 'Streaming High Fidelity...';
+        isPlaying = true;
+      }
+    }
+
+    // --- Dynamic Color Customizer Engine ---
+    window.changeColor = function(swatch, glowHex, particleHex) {
+      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+      swatch.classList.add('active');
+      
+      const newGlow = new THREE.Color(glowHex);
+      const newParticle = new THREE.Color(particleHex);
+      
+      ambientGlowRing.material.color.copy(newGlow);
+      ambientGlowRing.material.emissive.copy(newGlow);
+      platformGlow.material.color.copy(newGlow);
+      platformGlow.material.emissive.copy(newGlow);
+      gasMaterial.color.copy(newParticle);
+    }
+
+    // --- Mechanical Component View Engine ---
+    window.updateExplode = function(val) {
+      topCap.position.y = 0.81 + val * 0.7;
+      ambientGlowRing.position.y = 0.835 + val * 0.72;
+      topBand.position.y = 0.8 + val * 0.35;
+      body.position.y = 0.05 - val * 0.15;
+      bottomBand.position.y = -0.7 - val * 0.4;
+      resetIdleTimer();
+    }
+
+    // --- Focus Hotspots Positioning ---
+    window.triggerHotspot = function(target) {
+      isUserIdle = false;
+      if (target === 'dashboard') {
+        targetCamPos = new THREE.Vector3(currentXOffset + 0, 2.2, 1.8);
+      } else if (target === 'grille') {
+        targetCamPos = new THREE.Vector3(currentXOffset + 1.6, 0.4, 2.2);
+      } else if (target === 'base') {
+        targetCamPos = new THREE.Vector3(currentXOffset - 1.5, -0.4, 2.0);
+      }
+    }
+
+    // --- Three.js Initialization ---
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    const backgroundColor = 0x040406;
+    scene.fog = new THREE.FogExp2(backgroundColor, 0.18);
+
+    const camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0.7, 1.6, 4.5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0; 
+    container.appendChild(renderer.domElement);
+
+    // --- Post Processing Bloom ---
+    const renderScene = new RenderPass(scene, camera);
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.2, 0.55, 0.12);
+    const composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+
+    // --- Lighting Array ---
+    scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 5.0);
+    keyLight.position.set(5, 8, 4);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
+    scene.add(keyLight);
+
+    const leftFillLight = new THREE.DirectionalLight(0x90b0ff, 2.0);
+    leftFillLight.position.set(-6, 3, 2);
+    scene.add(leftFillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 6.0);
+    rimLight.position.set(0, 5, -6);
+    scene.add(rimLight);
+
+    // --- Grid environment ---
+    const floorGeo = new THREE.PlaneGeometry(60, 60);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x030305, roughness: 0.6, metalness: 0.3 });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.9;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    const grid = new THREE.GridHelper(40, 40, 0x1c1c24, 0x0a0a0f);
+    grid.position.y = -0.89;
+    scene.add(grid);
+
+    // --- Particle field ---
+    const particleCount = 1400;
+    const gasGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 6;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 2.2 + 0.1; 
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 6;
+    }
+    gasGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const createGasTexture = () => {
+      const canvas = document.createElement('canvas'); canvas.width = 32; canvas.height = 32;
+      const ctx = canvas.getContext('2d');
+      const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+      grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+      grad.addColorStop(0.2, 'rgba(240, 245, 255, 0.4)');
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, 32, 32);
+      return new THREE.CanvasTexture(canvas);
+    };
+
+    const gasMaterial = new THREE.PointsMaterial({
+      color: 0xffffff, size: 0.14, map: createGasTexture(), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const gasParticles = new THREE.Points(gasGeometry, gasMaterial);
+    scene.add(gasParticles);
+
+    // --- Speaker Mesh Architecture Construction ---
+    const speakerGroup = new THREE.Group();
+    scene.add(speakerGroup);
+
+    const platform = new THREE.Mesh(
+      new THREE.BoxGeometry(2.2, 0.15, 2.2),
+      new THREE.MeshStandardMaterial({ color: 0x14141a, roughness: 0.25, metalness: 0.8 })
+    );
+    platform.position.y = -0.81; platform.receiveShadow = true; platform.castShadow = true;
+    speakerGroup.add(platform);
+
+    const platformGlow = new THREE.Mesh(
+      new THREE.BoxGeometry(2.24, 0.02, 2.24),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 3.0 })
+    );
+    platformGlow.position.y = -0.88;
+    speakerGroup.add(platformGlow);
+
+    const createGrilleTexture = () => {
+      const canvas = document.createElement('canvas'); canvas.width = 4; canvas.height = 4;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#1e1e24'; ctx.fillRect(0, 0, 4, 4);
+      ctx.fillStyle = '#101014'; ctx.fillRect(0, 0, 2, 2); ctx.fillRect(2, 2, 2, 2);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(50, 35); return texture;
+    };
+
+    const body = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.85, 0.85, 1.5, 64),
+      new THREE.MeshStandardMaterial({ color: 0x24242c, bumpMap: createGrilleTexture(), bumpScale: 0.012, roughness: 0.6, metalness: 0.1 })
+    );
+    body.position.y = 0.05; body.castShadow = true; body.receiveShadow = true;
+    speakerGroup.add(body);
+
+    const metalMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.1, metalness: 0.95 });
+    const topBand = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.025, 16, 100), metalMaterial);
+    topBand.rotation.x = Math.PI / 2; topBand.position.y = 0.8; topBand.castShadow = true;
+    speakerGroup.add(topBand);
+
+    const bottomBand = topBand.clone(); bottomBand.position.y = -0.7;
+    speakerGroup.add(bottomBand);
+
+    const topCap = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.83, 0.83, 0.04, 64),
+      new THREE.MeshStandardMaterial({ color: 0x050508, roughness: 0.02, metalness: 0.9 })
+    );
+    topCap.position.y = 0.81; topCap.receiveShadow = true;
+    speakerGroup.add(topCap);
+
+    const ambientGlowRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.45, 0.012, 16, 100),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 3.0 })
+    );
+    ambientGlowRing.rotation.x = Math.PI / 2; ambientGlowRing.position.y = 0.835;
+    speakerGroup.add(ambientGlowRing);
+
+    speakerGroup.position.set(currentXOffset, 0.05, 0);
+
+    // --- Camera Controls Matrix ---
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor = 0.04;
+    controls.minDistance = 2.2; controls.maxDistance = 6.0;
+    controls.maxPolarAngle = Math.PI / 2.15;
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight); composer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    const runtimeClock = new THREE.Clock();
+
+    // --- Main Animation Frame Engine ---
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsed = runtimeClock.getElapsedTime();
+      
+      body.rotation.y = elapsed * 0.08;
+      topBand.rotation.z = elapsed * 0.08;
+      bottomBand.rotation.z = elapsed * 0.08;
+      
+      // Dynamic Sound Track Reactivity Animation Scaling
+      let waveFrequency = isPlaying ? 7.5 : 2.5;
+      let waveAmplitude = isPlaying ? 2.5 : 0.5;
+      const bassPulse = Math.sin(elapsed * waveFrequency);
+      const pulseIntensity = 2.0 + (bassPulse * waveAmplitude);
+      
+      ambientGlowRing.material.emissiveIntensity = Math.max(0.5, pulseIntensity);
+      platformGlow.material.emissiveIntensity = Math.max(0.3, pulseIntensity * 0.8);
+
+      // Light orbit mapping loop
+      rimLight.position.x = Math.cos(elapsed * 0.4) * 5;
+      rimLight.position.z = Math.sin(elapsed * 0.4) * 5 - 3;
+
+      // Particle simulation translation physics
+      const positions = gasParticles.geometry.attributes.position.array;
+      const motionFactor = isPlaying ? 2.8 : 0.4;
+      gasMaterial.opacity = 0.35 + Math.sin(elapsed * 2.0) * 0.15;
+
+      for (let i = 0; i < particleCount; i++) {
+        const idx = i * 3;
+        positions[idx + 1] += (0.0025 + Math.sin(elapsed + positions[idx]) * 0.0015) * motionFactor;
+        positions[idx]     += Math.cos(elapsed + positions[idx + 2]) * 0.001 * motionFactor;
+        
+        if (positions[idx + 1] > 1.6) positions[idx + 1] = -0.7;
+        if (Math.abs(positions[idx]) > 3.5) positions[idx] = (Math.random() - 0.5) * 5;
+      }
+      gasParticles.geometry.attributes.position.needsUpdate = true;
+
+      // Smooth programmatic hot-spot camera transitions
+      if (targetCamPos) {
+        camera.position.lerp(targetCamPos, 0.05);
+        if (camera.position.distanceTo(targetCamPos) < 0.02) targetCamPos = null;
+      } else if (isUserIdle) {
+        cameraAngle += 0.002; 
+        const radius = 4.5;
+        const targetCamX = currentXOffset + Math.cos(cameraAngle) * radius;
+        const targetCamZ = Math.sin(cameraAngle) * radius;
+        
+        camera.position.x += (targetCamX - camera.position.x) * 0.04;
+        camera.position.z += (targetCamZ - camera.position.z) * 0.04;
+        camera.position.y += (1.6 - camera.position.y) * 0.04; 
+      }
+
+      currentXOffset += (targetXOffset - currentXOffset) * 0.07;
+      speakerGroup.position.x = currentXOffset;
+      controls.target.set(currentXOffset, 0.05, 0);
+
+      controls.update();
+      composer.render();
+    }
+
+    animate();
+  </script>
+</body>
+</html>
